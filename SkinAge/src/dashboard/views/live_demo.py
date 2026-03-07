@@ -37,10 +37,8 @@ def _gauge_chart(score: float) -> go.Figure:
 
     fig = go.Figure(
         go.Indicator(
-            mode="gauge+number",
+            mode="gauge",
             value=score,
-            number={"font": {"size": 56, "color": COLORS["text"], "family": "Inter"}, "suffix": ""},
-            domain={"x": [0, 1], "y": [0, 1]},
             gauge={
                 "axis": {
                     "range": [0, 100],
@@ -68,13 +66,13 @@ def _gauge_chart(score: float) -> go.Figure:
         )
     )
     fig.update_layout(
-        height=280,
-        margin=dict(l=30, r=30, t=50, b=0),
+        height=250,
+        margin=dict(l=30, r=30, t=40, b=0),
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         font={"family": "Inter"},
     )
-    return fig
+    return fig, bar_color
 
 
 def _score_card(zone_data: Dict[str, Any]) -> None:
@@ -198,9 +196,18 @@ def render() -> None:
 
     # --- Overall score with gauge ---
     overall = result.get("overall_score", 0)
+    gauge_fig, gauge_color = _gauge_chart(overall)
     _, gauge_col, _ = st.columns([1, 2, 1])
     with gauge_col:
-        st.plotly_chart(_gauge_chart(overall), use_container_width=True)
+        st.plotly_chart(gauge_fig, use_container_width=True)
+        st.markdown(
+            f'<div style="text-align:center;margin-top:-30px;">'
+            f'<span style="font-size:56px;font-weight:700;color:{gauge_color};font-family:Inter,sans-serif;">'
+            f'{overall:.1f}</span>'
+            f'<span style="font-size:18px;color:#8892B0;margin-left:4px;">/ 100</span>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
 
     # --- Stats row ---
     predicted_age = result.get("predicted_age", 0)
