@@ -57,7 +57,7 @@ quality_thresholds:
 # inference device is CPU or when onnx_runtime is explicitly selected.
 # -----------------------------------------------------------------------------
 model:
-  model_path: outputs/models/best_model.pth   # PyTorch checkpoint
+  model_path: outputs/best_model.pth           # PyTorch checkpoint
   onnx_path:  outputs/models/skinage.onnx     # Exported ONNX graph
 
 # -----------------------------------------------------------------------------
