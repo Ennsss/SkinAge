@@ -27,6 +27,14 @@
 
 **Requirements:** MODEL-01, MODEL-02, MODEL-03, MODEL-04, MODEL-05, TRAIN-01, TRAIN-02, TRAIN-03, TRAIN-04, TRAIN-05
 
+**Plans:** 4 plans
+
+Plans:
+- [ ] 02-01-PLAN.md -- EfficientNet-B2 backbone + U-Net decoder
+- [ ] 02-02-PLAN.md -- Quality head + Age head
+- [ ] 02-03-PLAN.md -- Model assembly + Multi-task loss
+- [ ] 02-04-PLAN.md -- Training loop + CLI entry point
+
 **Success Criteria:**
 1. EfficientNet-B2 backbone extracts 1408-dim features with intermediate map hooks
 2. U-Net decoder generates 512x512x4 heatmaps with skip connections
