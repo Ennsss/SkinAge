@@ -1,4 +1,22 @@
-# SkinAge
+<div align="center">
+
+# 🔬 SkinAge
+
+**AI-powered facial skin quality analysis**
+
+*Upload a selfie. Get instant 7-zone scoring, concern heatmaps, and biological age estimation.*
+
+[![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white)](https://pytorch.org)
+[![Streamlit](https://img.shields.io/badge/Streamlit-Dashboard-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://streamlit.io)
+[![FastAPI](https://img.shields.io/badge/FastAPI-Serving-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
+
+[Live Demo](https://ennsss-skinage.streamlit.app) · [Documentation](#how-it-works) · [API Reference](#api-reference)
+
+---
+
+</div>
 
 **An end-to-end ML system that analyzes facial photographs to produce per-region skin quality scores, concern heatmaps, and estimated biological "skin age" — all from a single phone camera selfie.**
 
