@@ -56,6 +56,11 @@ def main() -> None:
         help="Enable auto-reload for development",
     )
     parser.add_argument(
+        "--demo",
+        action="store_true",
+        help="Run in demo mode with mock predictions (no trained model or MediaPipe needed)",
+    )
+    parser.add_argument(
         "--log-level",
         type=str,
         default="info",
@@ -77,7 +82,15 @@ def main() -> None:
     from src.api.app import create_app
 
     # Create the app with the specified config
-    app = create_app(config_path=args.config)
+    app = create_app(config_path=args.config, demo=args.demo)
+
+    if args.demo:
+        log = logging.getLogger("serve")
+        log.info("=" * 50)
+        log.info("  DEMO MODE — mock predictions enabled")
+        log.info("  No trained model or MediaPipe required")
+        log.info("  Upload any face photo to see results")
+        log.info("=" * 50)
 
     uvicorn.run(
         app,

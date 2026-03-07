@@ -34,3 +34,6 @@ Thumbs.db
 
 # Jupyter
 .ipynb_checkpoints/
+
+# Downloads / temp
+downloaded_files/

@@ -22,7 +22,7 @@ import yaml
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .inference import InferencePipeline
+from .demo import DemoInferencePipeline
 from .routes import router
 
 logger = logging.getLogger(__name__)
@@ -40,13 +40,17 @@ def _load_config(config_path: str) -> dict:
     return {}
 
 
-def create_app(config_path: Optional[str] = None) -> FastAPI:
+def create_app(config_path: Optional[str] = None, demo: bool = False) -> FastAPI:
     """Create and configure the FastAPI application.
 
     Parameters
     ----------
     config_path : str, optional
         Path to ``api_config.yaml``. Defaults to ``SkinAge/config/api_config.yaml``.
+    demo : bool
+        When True, uses a mock inference pipeline that generates realistic
+        fake results without a trained model or MediaPipe. Perfect for
+        demos and presentations.
 
     Returns
     -------
@@ -69,12 +73,20 @@ def create_app(config_path: Optional[str] = None) -> FastAPI:
         app.state.max_image_size_bytes = int(max_mb * 1024 * 1024)
 
         # Load inference pipeline
-        inference_cfg = config.get("inference", {})
-        device = inference_cfg.get("device", "auto")
-        app.state.inference_pipeline = InferencePipeline(
-            config_path=config_path,
-            device=device,
-        )
+        if demo:
+            logger.info("DEMO MODE — using mock inference pipeline.")
+            app.state.inference_pipeline = DemoInferencePipeline()
+            app.state.demo_mode = True
+        else:
+            from .inference import InferencePipeline
+
+            inference_cfg = config.get("inference", {})
+            device = inference_cfg.get("device", "auto")
+            app.state.inference_pipeline = InferencePipeline(
+                config_path=config_path,
+                device=device,
+            )
+            app.state.demo_mode = False
 
         logger.info("SkinAge API ready.")
         yield

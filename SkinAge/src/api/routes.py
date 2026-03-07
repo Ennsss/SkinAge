@@ -17,7 +17,11 @@ import cv2
 import numpy as np
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 
-from ..data.quality_gate import QualityReport, validate_image
+try:
+    from ..data.quality_gate import QualityReport, validate_image
+    _QUALITY_GATE_AVAILABLE = True
+except ImportError:
+    _QUALITY_GATE_AVAILABLE = False
 from .schemas import (
     AnalyzeResponse,
     CompareResponse,
@@ -121,18 +125,20 @@ async def analyze(
             detail=f"Image too large. Maximum size: {max_size / (1024 * 1024):.0f} MB.",
         )
 
-    # Quality gate
-    try:
-        quality_report = _run_quality_gate(image_bytes)
-    except HTTPException:
-        raise
-    except Exception as exc:
-        logger.warning("Quality gate error (proceeding with inference): %s", exc)
-        quality_report = None
+    # Quality gate (skipped in demo mode or when MediaPipe unavailable)
+    is_demo = getattr(request.app.state, "demo_mode", False)
+    if not is_demo and _QUALITY_GATE_AVAILABLE:
+        try:
+            quality_report = _run_quality_gate(image_bytes)
+        except HTTPException:
+            raise
+        except Exception as exc:
+            logger.warning("Quality gate error (proceeding with inference): %s", exc)
+            quality_report = None
 
-    if quality_report is not None and not quality_report.passed:
-        error_response = _quality_report_to_error(quality_report)
-        raise HTTPException(status_code=422, detail=error_response.model_dump())
+        if quality_report is not None and not quality_report.passed:
+            error_response = _quality_report_to_error(quality_report)
+            raise HTTPException(status_code=422, detail=error_response.model_dump())
 
     # Run inference
     try:

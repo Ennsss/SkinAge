@@ -19,6 +19,8 @@ from typing import Any, Dict, List, Optional
 import pandas as pd
 import streamlit as st
 
+from src.dashboard.theme import COLORS
+
 # ---------------------------------------------------------------------------
 # Project paths
 # ---------------------------------------------------------------------------
@@ -36,8 +38,6 @@ def _load_metadata() -> Optional[pd.DataFrame]:
     """Load dataset metadata CSV if available."""
     if _METADATA_CSV.is_file():
         return pd.read_csv(_METADATA_CSV)
-
-    # Try alternative locations
     alt_paths = [
         _DATA_DIR / "metadata.csv",
         _DATA_DIR / "raw" / "metadata.csv",
@@ -45,7 +45,6 @@ def _load_metadata() -> Optional[pd.DataFrame]:
     for path in alt_paths:
         if path.is_file():
             return pd.read_csv(path)
-
     return None
 
 
@@ -75,10 +74,13 @@ def _get_image_path(image_id: str) -> Optional[Path]:
 
 def render() -> None:
     """Render the Dataset Explorer page."""
-    st.header("Dataset Explorer")
     st.markdown(
-        "Browse the training dataset. Filter by age, ethnicity, and score range "
-        "to explore the data distribution."
+        '<div class="skin-hero">'
+        "<h1>Dataset Explorer</h1>"
+        "<p>Browse the training dataset. Filter by age, ethnicity, and score range "
+        "to explore the data distribution.</p>"
+        "</div>",
+        unsafe_allow_html=True,
     )
 
     # ------------------------------------------------------------------ #
@@ -88,66 +90,98 @@ def render() -> None:
     pseudo_labels = _load_pseudo_labels()
 
     if df is None:
-        st.warning(
-            "No dataset metadata found. Expected locations:\n"
-            f"- `{_METADATA_CSV}`\n"
-            f"- `{_DATA_DIR / 'metadata.csv'}`\n\n"
-            "Run the data pipeline to generate metadata."
+        st.markdown(
+            f"""
+            <div class="skin-card" style="text-align:center;padding:48px 24px;">
+                <div style="font-size:48px;margin-bottom:16px;">📂</div>
+                <div style="font-size:18px;font-weight:600;color:{COLORS['text']};margin-bottom:8px;">
+                    No Dataset Found
+                </div>
+                <div style="color:{COLORS['text_muted']};max-width:400px;margin:0 auto;line-height:1.6;">
+                    Run the data pipeline to generate metadata. Expected location:
+                    <code style="background:{COLORS['surface']};padding:2px 6px;border-radius:4px;font-size:12px;">
+                    {_METADATA_CSV}
+                    </code>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
         )
+
+        st.divider()
 
         st.markdown(
-            "**Dataset Explorer features:**\n"
-            "- Browse images filtered by age range, ethnicity, and score\n"
-            "- View aligned face images with zone overlays\n"
-            "- Inspect pseudo-label scores per image\n"
-            "- Paginated grid layout for large datasets"
+            '<div class="skin-section-header">'
+            '<span class="icon">✨</span>'
+            '<span class="title">Features</span>'
+            "</div>",
+            unsafe_allow_html=True,
         )
+
+        features = [
+            ("🖼️", "Image Grid", "Browse aligned face images in a paginated grid layout"),
+            ("🎚️", "Smart Filters", "Filter by age range, ethnicity, and overall score"),
+            ("🏷️", "Pseudo-Labels", "Inspect computer vision pseudo-label scores per image"),
+            ("📄", "Detail View", "View full metadata and scores for any selected image"),
+        ]
+        feat_cols = st.columns(2)
+        for i, (icon, name, desc) in enumerate(features):
+            with feat_cols[i % 2]:
+                st.markdown(
+                    f"""
+                    <div class="skin-card" style="padding:16px 20px;display:flex;align-items:center;gap:14px;">
+                        <span style="font-size:28px;">{icon}</span>
+                        <div>
+                            <div style="font-weight:600;color:{COLORS['text']};">{name}</div>
+                            <div style="font-size:13px;color:{COLORS['text_muted']};">{desc}</div>
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
         return
 
-    st.info(f"Dataset: {len(df)} images loaded.")
+    st.markdown(
+        f'<div class="skin-badge" style="margin-bottom:16px;">📸 {len(df)} images loaded</div>',
+        unsafe_allow_html=True,
+    )
 
     # ------------------------------------------------------------------ #
     # Filters
     # ------------------------------------------------------------------ #
     with st.sidebar:
-        st.subheader("Dataset Filters")
+        st.markdown(
+            '<div class="skin-section-header">'
+            '<span class="icon">🎚️</span>'
+            '<span class="title">Filters</span>'
+            "</div>",
+            unsafe_allow_html=True,
+        )
 
-        # Age range
         if "age" in df.columns:
             age_min = int(df["age"].min())
             age_max = int(df["age"].max())
             age_range = st.slider(
-                "Age range",
-                min_value=age_min,
-                max_value=age_max,
-                value=(age_min, age_max),
-                key="ds_age_range",
+                "Age range", min_value=age_min, max_value=age_max,
+                value=(age_min, age_max), key="ds_age_range",
             )
         else:
             age_range = None
 
-        # Ethnicity filter
         if "ethnicity" in df.columns:
             ethnicities = sorted(df["ethnicity"].dropna().unique().tolist())
             selected_ethnicities = st.multiselect(
-                "Ethnicity",
-                options=ethnicities,
-                default=ethnicities,
-                key="ds_ethnicity",
+                "Ethnicity", options=ethnicities, default=ethnicities, key="ds_ethnicity",
             )
         else:
             selected_ethnicities = None
 
-        # Score range filter
         if "overall_score" in df.columns:
             score_min = float(df["overall_score"].min())
             score_max = float(df["overall_score"].max())
             score_range = st.slider(
-                "Overall score range",
-                min_value=score_min,
-                max_value=score_max,
-                value=(score_min, score_max),
-                key="ds_score_range",
+                "Overall score range", min_value=score_min, max_value=score_max,
+                value=(score_min, score_max), key="ds_score_range",
             )
         else:
             score_range = None
@@ -158,20 +192,20 @@ def render() -> None:
     filtered = df.copy()
 
     if age_range is not None and "age" in filtered.columns:
-        filtered = filtered[
-            (filtered["age"] >= age_range[0]) & (filtered["age"] <= age_range[1])
-        ]
+        filtered = filtered[(filtered["age"] >= age_range[0]) & (filtered["age"] <= age_range[1])]
 
     if selected_ethnicities is not None and "ethnicity" in filtered.columns:
         filtered = filtered[filtered["ethnicity"].isin(selected_ethnicities)]
 
     if score_range is not None and "overall_score" in filtered.columns:
-        filtered = filtered[
-            (filtered["overall_score"] >= score_range[0])
-            & (filtered["overall_score"] <= score_range[1])
-        ]
+        filtered = filtered[(filtered["overall_score"] >= score_range[0]) & (filtered["overall_score"] <= score_range[1])]
 
-    st.markdown(f"**Showing {len(filtered)} of {len(df)} images**")
+    st.markdown(
+        f'<div style="color:{COLORS["text_muted"]};font-size:14px;margin-bottom:12px;">'
+        f"Showing <strong style='color:{COLORS['text']};'>{len(filtered)}</strong> of {len(df)} images"
+        f"</div>",
+        unsafe_allow_html=True,
+    )
 
     if len(filtered) == 0:
         st.warning("No images match the current filters.")
@@ -181,15 +215,7 @@ def render() -> None:
     # Pagination
     # ------------------------------------------------------------------ #
     total_pages = max(1, (len(filtered) + ITEMS_PER_PAGE - 1) // ITEMS_PER_PAGE)
-    page = st.number_input(
-        "Page",
-        min_value=1,
-        max_value=total_pages,
-        value=1,
-        step=1,
-        key="ds_page",
-    )
-    st.caption(f"Page {page} of {total_pages}")
+    page = st.number_input("Page", min_value=1, max_value=total_pages, value=1, step=1, key="ds_page")
 
     start_idx = (page - 1) * ITEMS_PER_PAGE
     end_idx = min(start_idx + ITEMS_PER_PAGE, len(filtered))
@@ -210,21 +236,17 @@ def render() -> None:
 
             row_data = page_df.iloc[item_idx]
             with cols[col_idx]:
-                # Determine image ID
                 image_id = str(row_data.get("image_id", row_data.get("filename", f"image_{start_idx + item_idx}")))
-
-                # Try to find and display the image
                 img_path = _get_image_path(image_id)
                 if img_path and img_path.is_file():
                     st.image(str(img_path), use_container_width=True)
                 else:
                     st.markdown(
-                        f"<div style='background:#eee;padding:40px;text-align:center;"
-                        f"border-radius:8px;'>{image_id}</div>",
+                        f'<div style="background:{COLORS["surface"]};padding:40px;text-align:center;'
+                        f'border-radius:12px;color:{COLORS["text_muted"]};">{image_id}</div>',
                         unsafe_allow_html=True,
                     )
 
-                # Caption with metadata
                 caption_parts = [f"**{image_id}**"]
                 if "age" in row_data and pd.notna(row_data["age"]):
                     caption_parts.append(f"Age: {int(row_data['age'])}")
@@ -232,31 +254,30 @@ def render() -> None:
                     caption_parts.append(f"{row_data['ethnicity']}")
                 if "overall_score" in row_data and pd.notna(row_data["overall_score"]):
                     caption_parts.append(f"Score: {row_data['overall_score']:.0f}")
-
                 st.markdown(" | ".join(caption_parts))
 
     # ------------------------------------------------------------------ #
     # Selected image detail
     # ------------------------------------------------------------------ #
     st.divider()
-    st.subheader("Image Detail")
+    st.markdown(
+        '<div class="skin-section-header">'
+        '<span class="icon">🔍</span>'
+        '<span class="title">Image Detail</span>'
+        "</div>",
+        unsafe_allow_html=True,
+    )
 
-    # Select image for detail view
     id_column = "image_id" if "image_id" in filtered.columns else "filename"
     if id_column not in filtered.columns:
         st.info("No image ID column found in metadata.")
         return
 
     image_ids = filtered[id_column].tolist()
-    selected_id = st.selectbox(
-        "Select image for detail view",
-        options=image_ids[:100],  # Limit dropdown size
-        format_func=str,
-    )
+    selected_id = st.selectbox("Select image", options=image_ids[:100], format_func=str)
 
     if selected_id is not None:
         selected_row = filtered[filtered[id_column] == selected_id].iloc[0]
-
         detail_col1, detail_col2 = st.columns([1, 2])
 
         with detail_col1:
@@ -267,14 +288,12 @@ def render() -> None:
                 st.info(f"Image not found for {selected_id}")
 
         with detail_col2:
-            # Show all metadata for this image
-            st.markdown("**Metadata**")
+            st.markdown(f"**Metadata**")
             for col_name in selected_row.index:
                 val = selected_row[col_name]
                 if pd.notna(val):
                     st.markdown(f"- **{col_name}**: {val}")
 
-            # Show pseudo-labels if available
             if pseudo_labels is not None:
                 id_col_pl = "image_id" if "image_id" in pseudo_labels.columns else "filename"
                 if id_col_pl in pseudo_labels.columns:
@@ -284,10 +303,7 @@ def render() -> None:
                         pl_data = pl_row.iloc[0]
                         score_cols = [
                             c for c in pl_data.index
-                            if any(
-                                concern in c
-                                for concern in ["wrinkle", "pigmentation", "redness", "pore"]
-                            )
+                            if any(concern in c for concern in ["wrinkle", "pigmentation", "redness", "pore"])
                         ]
                         for col_name in score_cols:
                             val = pl_data[col_name]

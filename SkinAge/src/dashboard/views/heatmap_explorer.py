@@ -13,27 +13,35 @@ import base64
 import io
 from typing import Any, Dict, Optional
 
-import requests
 import streamlit as st
 from PIL import Image
 
+from src.dashboard.engine import analyze
+from src.dashboard.theme import COLORS, SEVERITY_COLORS
+
 CONCERN_TYPES = ["wrinkle", "pigmentation", "redness", "pore_texture"]
 
-
-def _get_api_url() -> str:
-    return st.session_state.get("api_url", "http://localhost:8000")
+CONCERN_ICONS = {
+    "wrinkle": "〰️",
+    "pigmentation": "🎨",
+    "redness": "🔴",
+    "pore_texture": "🔍",
+}
 
 
 def render() -> None:
     """Render the Heatmap Explorer page."""
-    st.header("Heatmap Explorer")
     st.markdown(
-        "Explore concern-specific heatmaps overlaid on your face image. "
-        "Select a concern type and adjust the overlay opacity."
+        '<div class="skin-hero">'
+        "<h1>Heatmap Explorer</h1>"
+        "<p>Explore concern-specific heatmaps overlaid on your face image. "
+        "Select a concern type and adjust the overlay opacity.</p>"
+        "</div>",
+        unsafe_allow_html=True,
     )
 
     # ------------------------------------------------------------------ #
-    # Image source: upload new or use last analyzed
+    # Image source
     # ------------------------------------------------------------------ #
     source = st.radio(
         "Image source",
@@ -67,23 +75,16 @@ def render() -> None:
         if st.button("Analyze for heatmaps", type="primary"):
             with st.spinner("Analyzing..."):
                 try:
-                    url = f"{_get_api_url()}/api/v1/analyze"
-                    files = {"file": ("image.jpg", image_bytes, "image/jpeg")}
-                    data = {"include_heatmaps": "true"}
-                    response = requests.post(url, files=files, data=data, timeout=60)
-                    response.raise_for_status()
-                    result = response.json()
+                    result = analyze(image_bytes, include_heatmaps=True)
                     st.session_state["last_result"] = result
                     st.session_state["last_image"] = image_bytes
-                except requests.ConnectionError:
-                    st.error("Could not connect to the SkinAge API.")
-                    return
-                except requests.HTTPError as exc:
-                    st.error(f"API error: {exc.response.status_code}")
+                except Exception as exc:
+                    st.error(f"Analysis failed: {exc}")
                     return
         else:
-            # Show the uploaded image while waiting
-            st.image(image_bytes, caption="Uploaded image", width=400)
+            _, img_col, _ = st.columns([1, 1, 1])
+            with img_col:
+                st.image(image_bytes, caption="Uploaded image", use_container_width=True)
             return
 
     if result is None:
@@ -94,22 +95,28 @@ def render() -> None:
         st.warning("No heatmap data available. Re-analyze with heatmaps enabled.")
         return
 
+    st.divider()
+
     # ------------------------------------------------------------------ #
-    # Controls
+    # Controls + Display
     # ------------------------------------------------------------------ #
     col_controls, col_display = st.columns([1, 3])
 
     with col_controls:
-        st.subheader("Controls")
+        st.markdown(
+            '<div class="skin-section-header">'
+            '<span class="icon">🎛️</span>'
+            '<span class="title">Controls</span>'
+            "</div>",
+            unsafe_allow_html=True,
+        )
 
-        # Concern type selector
         selected_concern = st.radio(
             "Concern type",
             CONCERN_TYPES,
-            format_func=lambda x: x.replace("_", " ").title(),
+            format_func=lambda x: f"{CONCERN_ICONS.get(x, '')}  {x.replace('_', ' ').title()}",
         )
 
-        # Opacity slider
         opacity = st.slider(
             "Overlay opacity",
             min_value=0.0,
@@ -120,60 +127,80 @@ def render() -> None:
 
         st.divider()
 
-        # Zone detail scores
-        st.subheader("Zone Scores")
+        st.markdown(
+            '<div class="skin-section-header">'
+            '<span class="icon">🎯</span>'
+            '<span class="title">Zone Detail</span>'
+            "</div>",
+            unsafe_allow_html=True,
+        )
+
         zone_scores = result.get("zone_scores", [])
         selected_zone = st.selectbox(
-            "Select zone for details",
+            "Select zone",
             [z["zone"] for z in zone_scores],
             format_func=lambda x: x.replace("_", " ").title(),
         )
 
-        # Show selected zone details
         for zone in zone_scores:
             if zone["zone"] == selected_zone:
-                st.metric(
-                    f"{selected_zone.replace('_', ' ').title()}",
-                    f"{zone['composite_score']:.0f}/100",
-                    help=zone["label"],
+                color = COLORS["primary"]
+                st.markdown(
+                    f"""
+                    <div class="skin-card" style="padding:16px;">
+                        <div class="zone-name">{selected_zone.replace('_', ' ')}</div>
+                        <div class="score" style="color:{color};font-size:36px;">{zone['composite_score']:.0f}</div>
+                        <div class="label" style="background:{color}18;color:{color};">{zone['label']}</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
                 )
                 for concern in zone.get("concerns", []):
-                    severity_color = {
-                        "minimal": ":green",
-                        "mild": ":orange",
-                        "moderate": ":orange",
-                        "significant": ":red",
-                    }.get(concern["severity"], "")
-
+                    sev_color = SEVERITY_COLORS.get(concern["severity"], "#5A6177")
                     st.markdown(
-                        f"- {concern['concern'].replace('_', ' ')}: "
-                        f"**{concern['score']:.0f}** ({concern['severity']})"
+                        f'<div class="concern-row" style="padding:4px 0;font-size:13px;color:#8892B0;">'
+                        f'<span class="concern-dot" style="background:{sev_color};width:8px;height:8px;'
+                        f'border-radius:50%;display:inline-block;margin-right:6px;"></span>'
+                        f'{concern["concern"].replace("_", " ")}: '
+                        f'<strong style="color:#FAFAFA;">{concern["score"]:.0f}</strong> '
+                        f'<span style="color:{sev_color};">({concern["severity"]})</span>'
+                        f"</div>",
+                        unsafe_allow_html=True,
                     )
                 break
 
     with col_display:
-        st.subheader(f"{selected_concern.replace('_', ' ').title()} Heatmap")
+        concern_label = selected_concern.replace("_", " ").title()
+        icon = CONCERN_ICONS.get(selected_concern, "")
+        st.markdown(
+            f'<div class="skin-section-header">'
+            f'<span class="icon">{icon}</span>'
+            f'<span class="title">{concern_label} Heatmap</span>'
+            f'<span class="subtitle">Opacity: {opacity:.0%}</span>'
+            f"</div>",
+            unsafe_allow_html=True,
+        )
 
-        # Decode and display the selected heatmap
         b64_data = heatmaps.get(selected_concern)
         if b64_data:
-            img_bytes = base64.b64decode(b64_data)
-            img = Image.open(io.BytesIO(img_bytes))
-
-            # Apply opacity by blending with original
-            # Note: The API already produces blended overlays,
-            # so for client-side opacity we blend the heatmap image with the original
+            img_bytes_hm = base64.b64decode(b64_data)
+            img = Image.open(io.BytesIO(img_bytes_hm))
             original = Image.open(io.BytesIO(image_bytes)).convert("RGBA").resize(img.size)
             heatmap_rgba = img.convert("RGBA")
-
             blended = Image.blend(original, heatmap_rgba, alpha=opacity)
             st.image(blended, use_container_width=True)
         else:
             st.info(f"No heatmap available for {selected_concern}.")
 
-        # Show all heatmaps in a row below
         st.divider()
-        st.subheader("All Concerns")
+
+        st.markdown(
+            '<div class="skin-section-header">'
+            '<span class="icon">🔬</span>'
+            '<span class="title">All Concerns</span>'
+            "</div>",
+            unsafe_allow_html=True,
+        )
         cols = st.columns(len(CONCERN_TYPES))
         for col, concern in zip(cols, CONCERN_TYPES):
             b64 = heatmaps.get(concern)
@@ -181,6 +208,6 @@ def render() -> None:
                 img_data = base64.b64decode(b64)
                 col.image(
                     img_data,
-                    caption=concern.replace("_", " ").title(),
+                    caption=f"{CONCERN_ICONS.get(concern, '')} {concern.replace('_', ' ').title()}",
                     use_container_width=True,
                 )
