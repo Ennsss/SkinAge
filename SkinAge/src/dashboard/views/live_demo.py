@@ -207,33 +207,21 @@ def render() -> None:
     meta = result.get("metadata", {})
     proc_time = meta.get("processing_time_ms", 0)
 
-    delta_html = ""
     if age_delta is not None:
-        delta_class = "delta-positive" if age_delta < 0 else "delta-negative" if age_delta > 0 else "delta-neutral"
-        delta_sign = "+" if age_delta > 0 else ""
-        delta_html = (
-            f'<div class="skin-stat">'
-            f'<div class="value {delta_class}">{delta_sign}{age_delta:.1f}y</div>'
-            f'<div class="label">Age Delta</div>'
-            f"</div>"
-        )
-
-    st.markdown(
-        f"""
-        <div class="skin-stat-row">
-            <div class="skin-stat">
-                <div class="value">{predicted_age:.1f}<span style="font-size:18px;color:#8892B0;"> yrs</span></div>
-                <div class="label">Predicted Skin Age</div>
-            </div>
-            {delta_html}
-            <div class="skin-stat">
-                <div class="value">{proc_time:.0f}<span style="font-size:18px;color:#8892B0;"> ms</span></div>
-                <div class="label">Processing Time</div>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+        stat_cols = st.columns(3)
+        with stat_cols[0]:
+            st.metric("Predicted Skin Age", f"{predicted_age:.1f} yrs")
+        with stat_cols[1]:
+            delta_sign = "+" if age_delta > 0 else ""
+            st.metric("Age Delta", f"{delta_sign}{age_delta:.1f} yrs")
+        with stat_cols[2]:
+            st.metric("Processing Time", f"{proc_time:.0f} ms")
+    else:
+        stat_cols = st.columns(2)
+        with stat_cols[0]:
+            st.metric("Predicted Skin Age", f"{predicted_age:.1f} yrs")
+        with stat_cols[1]:
+            st.metric("Processing Time", f"{proc_time:.0f} ms")
 
     st.divider()
 
