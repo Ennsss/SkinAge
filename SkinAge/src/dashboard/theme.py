@@ -57,9 +57,13 @@ SEVERITY_COLORS = {
 # ---------------------------------------------------------------------------
 
 NAV_ITEMS = {
-    "Live Demo": {"icon": "🔬", "module": "src.dashboard.views.live_demo"},
+    "Analyze": {"icon": "🔬", "module": "src.dashboard.views.live_demo"},
     "Heatmap Explorer": {"icon": "🗺️", "module": "src.dashboard.views.heatmap_explorer"},
     "Before / After": {"icon": "⚖️", "module": "src.dashboard.views.comparison"},
+}
+
+# Developer-only pages (require local data files, hidden on cloud)
+NAV_ITEMS_DEV = {
     "Model Internals": {"icon": "🧠", "module": "src.dashboard.views.model_internals"},
     "Dataset Explorer": {"icon": "📊", "module": "src.dashboard.views.dataset_explorer"},
 }

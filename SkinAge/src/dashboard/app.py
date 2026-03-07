@@ -17,7 +17,7 @@ import importlib
 
 import streamlit as st
 
-from src.dashboard.theme import COLORS, NAV_ITEMS, inject_css
+from src.dashboard.theme import COLORS, NAV_ITEMS, NAV_ITEMS_DEV, inject_css
 
 
 def main() -> None:
@@ -63,7 +63,17 @@ def main() -> None:
 
         # Custom nav buttons
         if "selected_page" not in st.session_state:
-            st.session_state["selected_page"] = "Live Demo"
+            st.session_state["selected_page"] = "Analyze"
+
+        # Combine nav items — show dev pages only when local data exists
+        all_nav = dict(NAV_ITEMS)
+        import os
+        if os.environ.get("STREAMLIT_SHARING") is None:
+            # Show dev pages locally (check if any local data exists)
+            from pathlib import Path as _P
+            _data_dir = Path(__file__).resolve().parents[2] / "data" / "processed"
+            if _data_dir.is_dir():
+                all_nav.update(NAV_ITEMS_DEV)
 
         st.markdown(
             '<div style="font-size:10px; text-transform:uppercase; letter-spacing:2px; '
@@ -71,9 +81,9 @@ def main() -> None:
             unsafe_allow_html=True,
         )
 
-        page_labels = list(NAV_ITEMS.keys())
+        page_labels = list(all_nav.keys())
         for page_name in page_labels:
-            item = NAV_ITEMS[page_name]
+            item = all_nav[page_name]
             is_active = st.session_state["selected_page"] == page_name
 
             if is_active:
@@ -129,7 +139,11 @@ def main() -> None:
 
     # ── Render selected page ─────────────────────────────────
     selected = st.session_state["selected_page"]
-    module_path = NAV_ITEMS[selected]["module"]
+    all_pages = {**NAV_ITEMS, **NAV_ITEMS_DEV}
+    if selected not in all_pages:
+        selected = list(NAV_ITEMS.keys())[0]
+        st.session_state["selected_page"] = selected
+    module_path = all_pages[selected]["module"]
     page_module = importlib.import_module(module_path)
     page_module.render()
 
