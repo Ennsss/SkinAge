@@ -51,7 +51,7 @@ class SkinAgeBackbone(nn.Module):
 
         # ------------------------------------------------------------------
         # 2. Pooling head — borrowed from the full (non-features_only) model.
-        #    We copy conv_head / bn2 / act2 then immediately discard the
+        #    We copy conv_head / bn2 then immediately discard the
         #    heavy full model so it does not occupy GPU memory.
         # ------------------------------------------------------------------
         _full_model: nn.Module = timm.create_model(
@@ -60,11 +60,11 @@ class SkinAgeBackbone(nn.Module):
             features_only=False,
         )
 
-        # These three layers sit between stage-4 features and the 1408-dim
+        # These layers sit between stage-4 features and the 1408-dim
         # pre-logits representation in the standard EfficientNet-B2 model.
+        # In newer timm, bn2 is a BatchNormAct2d that includes the activation.
         self.conv_head = _full_model.conv_head   # 352 -> 1408, kernel 1x1
-        self.bn2 = _full_model.bn2
-        self.act2 = _full_model.act2
+        self.bn2 = _full_model.bn2               # BatchNormAct2d (includes SiLU)
 
         # Release the full model immediately.
         del _full_model
@@ -94,8 +94,7 @@ class SkinAgeBackbone(nn.Module):
 
         # Pooling head operates on the deepest (stage-4) feature map.
         z: torch.Tensor = self.conv_head(skip_features[-1])
-        z = self.bn2(z)
-        z = self.act2(z)
+        z = self.bn2(z)  # BatchNormAct2d applies BN + SiLU
         z = self.global_pool(z)                 # (B, 1408, 1, 1)
         pooled: torch.Tensor = z.flatten(1)     # (B, 1408)
 
@@ -109,7 +108,7 @@ class SkinAgeBackbone(nn.Module):
         """Freeze the encoder weights for Phase-1 training.
 
         Only the encoder (feature extractor) is frozen.  The pooling head
-        (conv_head / bn2 / act2) is intentionally left trainable because it
+        (conv_head / bn2) is intentionally left trainable because it
         feeds the downstream regression and classification heads.
         """
         self._frozen = True

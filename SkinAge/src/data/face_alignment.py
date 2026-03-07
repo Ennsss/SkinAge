@@ -22,6 +22,13 @@ import pandas as pd
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
+# MediaPipe model paths (new tasks API)
+# ---------------------------------------------------------------------------
+_MODEL_DIR = Path(__file__).resolve().parents[2] / "models" / "mediapipe"
+_FACE_DETECTOR_MODEL = _MODEL_DIR / "blaze_face_short_range.tflite"
+_FACE_LANDMARKER_MODEL = _MODEL_DIR / "face_landmarker.task"
+
+# ---------------------------------------------------------------------------
 # Landmark index groups for eye centres
 # ---------------------------------------------------------------------------
 LEFT_EYE_INDICES: List[int] = [33, 133, 157, 158, 159, 160, 161, 246]
@@ -71,7 +78,7 @@ class AlignmentResult:
 def detect_face(image: np.ndarray) -> Optional[FaceDetection]:
     """Detect the most prominent face in *image* (BGR, uint8).
 
-    Uses MediaPipe Face Detection with a confidence threshold of 0.7.
+    Uses MediaPipe Face Detection (tasks API) with a confidence threshold of 0.7.
     When multiple faces are found the one with the largest bounding-box area
     is returned.  Returns ``None`` when no face meets the threshold.
     """
@@ -81,25 +88,32 @@ def detect_face(image: np.ndarray) -> Optional[FaceDetection]:
 
     h, w = image.shape[:2]
 
-    with mp.solutions.face_detection.FaceDetection(
-        model_selection=1,  # full-range model
-        min_detection_confidence=DETECTION_CONFIDENCE_THRESHOLD,
-    ) as face_detection:
-        rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        results = face_detection.process(rgb)
+    BaseOptions = mp.tasks.BaseOptions
+    FaceDetectorClass = mp.tasks.vision.FaceDetector
+    FaceDetectorOptions = mp.tasks.vision.FaceDetectorOptions
 
-        if not results.detections:
+    options = FaceDetectorOptions(
+        base_options=BaseOptions(model_asset_path=str(_FACE_DETECTOR_MODEL)),
+        min_detection_confidence=DETECTION_CONFIDENCE_THRESHOLD,
+    )
+
+    with FaceDetectorClass.create_from_options(options) as detector:
+        rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
+        result = detector.detect(mp_image)
+
+        if not result.detections:
             logger.debug("No faces detected.")
             return None
 
         best: Optional[FaceDetection] = None
-        for det in results.detections:
-            bbox_rel = det.location_data.relative_bounding_box
-            xmin = max(int(bbox_rel.xmin * w), 0)
-            ymin = max(int(bbox_rel.ymin * h), 0)
-            box_w = min(int(bbox_rel.width * w), w - xmin)
-            box_h = min(int(bbox_rel.height * h), h - ymin)
-            conf = det.score[0]
+        for det in result.detections:
+            bbox = det.bounding_box
+            xmin = max(bbox.origin_x, 0)
+            ymin = max(bbox.origin_y, 0)
+            box_w = min(bbox.width, w - xmin)
+            box_h = min(bbox.height, h - ymin)
+            conf = det.categories[0].score if det.categories else 0.0
 
             candidate = FaceDetection(
                 xmin=xmin, ymin=ymin, width=box_w, height=box_h, confidence=conf
@@ -111,9 +125,9 @@ def detect_face(image: np.ndarray) -> Optional[FaceDetection]:
 
 
 def get_landmarks(image: np.ndarray) -> Optional[np.ndarray]:
-    """Extract 468 face-mesh landmarks and return pixel coordinates.
+    """Extract 478 face-mesh landmarks and return pixel coordinates.
 
-    Returns an array of shape ``(468, 2)`` with (x, y) in pixel space,
+    Returns an array of shape ``(478, 2)`` with (x, y) in pixel space,
     or ``None`` if no face mesh is detected.
     """
     if image is None or image.size == 0:
@@ -122,24 +136,30 @@ def get_landmarks(image: np.ndarray) -> Optional[np.ndarray]:
 
     h, w = image.shape[:2]
 
-    with mp.solutions.face_mesh.FaceMesh(
-        static_image_mode=True,
-        max_num_faces=1,
-        refine_landmarks=True,
-        min_detection_confidence=DETECTION_CONFIDENCE_THRESHOLD,
-    ) as face_mesh:
-        rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        results = face_mesh.process(rgb)
+    BaseOptions = mp.tasks.BaseOptions
+    FaceLandmarkerClass = mp.tasks.vision.FaceLandmarker
+    FaceLandmarkerOptions = mp.tasks.vision.FaceLandmarkerOptions
 
-        if not results.multi_face_landmarks:
+    options = FaceLandmarkerOptions(
+        base_options=BaseOptions(model_asset_path=str(_FACE_LANDMARKER_MODEL)),
+        num_faces=1,
+        min_face_detection_confidence=DETECTION_CONFIDENCE_THRESHOLD,
+    )
+
+    with FaceLandmarkerClass.create_from_options(options) as landmarker:
+        rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
+        result = landmarker.detect(mp_image)
+
+        if not result.face_landmarks:
             logger.debug("No face mesh detected.")
             return None
 
-        face = results.multi_face_landmarks[0]
+        face = result.face_landmarks[0]
         landmarks = np.array(
-            [[lm.x * w, lm.y * h] for lm in face.landmark],
+            [[lm.x * w, lm.y * h] for lm in face],
             dtype=np.float32,
-        )  # (468, 2)
+        )
 
         return landmarks
 
