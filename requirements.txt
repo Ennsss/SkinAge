@@ -5,3 +5,10 @@ numpy>=1.24.0
 pandas>=2.0.0
 pydantic>=2.0.0
 opencv-python-headless>=4.8.0
+PyYAML>=6.0
+
+# ML inference (CPU-only for cloud deployment)
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch>=2.0.0
+timm>=0.9.0
+mediapipe>=0.10.0
