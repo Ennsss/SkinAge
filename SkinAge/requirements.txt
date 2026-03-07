@@ -1,0 +1,60 @@
+# =============================================================================
+# SkinAge — Python dependency pinning
+# =============================================================================
+# Install with:
+#   pip install -r requirements.txt
+#
+# For GPU-accelerated PyTorch (CUDA 12.1), replace the torch/torchvision lines
+# with the appropriate index URL:
+#   pip install torch>=2.0.0 torchvision>=0.15.0 --index-url \
+#       https://download.pytorch.org/whl/cu121
+# =============================================================================
+
+# ── Deep learning ─────────────────────────────────────────────────────────────
+torch>=2.0.0
+torchvision>=0.15.0
+timm>=0.9.0
+
+# ── Computer vision & face analysis ───────────────────────────────────────────
+mediapipe>=0.10.0
+opencv-python>=4.8.0
+Pillow>=10.0.0
+scikit-image>=0.21.0
+
+# ── Machine learning & statistics ─────────────────────────────────────────────
+scikit-learn>=1.3.0
+scipy>=1.11.0
+
+# ── Data augmentation ─────────────────────────────────────────────────────────
+albumentations>=1.3.0
+
+# ── Data manipulation ─────────────────────────────────────────────────────────
+pandas>=2.0.0
+numpy>=1.24.0
+
+# ── Visualisation ─────────────────────────────────────────────────────────────
+plotly>=5.15.0
+matplotlib>=3.7.0
+
+# ── API & serving ─────────────────────────────────────────────────────────────
+fastapi>=0.100.0
+uvicorn>=0.23.0
+pydantic>=2.0.0
+streamlit>=1.25.0
+python-multipart>=0.0.6
+
+# ── Configuration ─────────────────────────────────────────────────────────────
+PyYAML>=6.0
+
+# ── Model export & inference ──────────────────────────────────────────────────
+onnx>=1.14.0
+onnxruntime>=1.15.0
+
+# ── Testing ───────────────────────────────────────────────────────────────────
+pytest>=7.4.0
+pytest-cov>=4.1.0
+
+# ── Utilities ─────────────────────────────────────────────────────────────────
+tqdm>=4.65.0
+requests>=2.31.0
+colorspacious>=1.1.2

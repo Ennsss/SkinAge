@@ -1,0 +1,36 @@
+# Data (only the top-level data directory, not src/data/)
+/data/
+*.npy
+*.pkl
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Models
+outputs/models/*.pth
+outputs/models/*.onnx
+outputs/models/mediapipe/
+
+# Environment
+.env
+.venv/
+venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/

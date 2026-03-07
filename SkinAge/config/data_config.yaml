@@ -1,0 +1,147 @@
+# =============================================================================
+# data_config.yaml
+# SkinAge ML — Dataset Paths, Splits, Pseudo-Labels, and Augmentation
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Dataset Registry
+# All paths are relative to the project root. Each dataset contributes
+# distinct demographic coverage and annotation density.
+#   utkface       — age-labelled, ethnicity-labelled, broad age range
+#   ffhq          — high-resolution, diverse, unlabelled ages (pseudo-labelled)
+#   celeba        — attribute-rich, large scale
+#   fitzpatrick17k — dermatology-focused, Fitzpatrick skin-type annotations
+# -----------------------------------------------------------------------------
+datasets:
+  utkface:
+    path: data/raw/utkface
+    has_age_labels: true
+    has_ethnicity_labels: true
+    # Download settings (consumed by src/data/download.py)
+    urls:
+      - "https://github.com/asmith26/UTKFace/releases/download/v1.0/UTKFace.tar.gz"
+    keep_archive: false         # Remove .tar.gz after extraction to save disk
+
+  ffhq:
+    path: data/raw/ffhq
+    has_age_labels: false       # Ages sourced via pseudo-labelling
+    has_ethnicity_labels: false
+    subset_size: 10000          # Number of thumbnails to include in metadata
+
+  celeba:
+    path: data/raw/celeba
+    has_age_labels: false
+    has_ethnicity_labels: false
+    subset_size: 20000          # Number of aligned images to include in metadata
+
+  fitzpatrick17k:
+    path: data/raw/fitzpatrick17k
+    has_age_labels: false
+    has_ethnicity_labels: true  # Fitzpatrick skin-type annotations available
+    csv_url: "https://raw.githubusercontent.com/mattgroh/fitzpatrick17k/main/fitzpatrick17k.csv"
+    max_images: ~               # null = download all available images
+
+# -----------------------------------------------------------------------------
+# Train / Validation / Test Split Ratios
+# Stratification ensures each split mirrors the full distribution of age
+# decade and ethnicity, preventing demographic imbalance across sets.
+# -----------------------------------------------------------------------------
+splits:
+  train: 0.70
+  val:   0.15
+  test:  0.15
+
+stratify_by:
+  - age_decade       # Bucketed age groups (0-9, 10-19, …) for balanced splits
+  - ethnicity
+
+# -----------------------------------------------------------------------------
+# Image Resolution
+# All images are resized to 512x512 before entering the pipeline. This
+# resolution preserves fine skin texture detail while staying within GPU
+# memory budgets at batch_size=16.
+# -----------------------------------------------------------------------------
+image_size: 512
+
+# -----------------------------------------------------------------------------
+# Pseudo-Label Generation Parameters
+# Applied to datasets that lack ground-truth skin-concern annotations.
+# Each concern type uses a dedicated classical CV signal.
+# -----------------------------------------------------------------------------
+pseudo_labels:
+
+  # Wrinkle detection via Canny edge detection on CLAHE-equalised luminance.
+  wrinkles:
+    method: canny
+    canny_threshold_low: 30
+    canny_threshold_high: 80
+    clahe_clip_limit: 2.0
+    clahe_tile_grid: 8
+    blur_kernel: 3           # Gaussian pre-blur to suppress noise before Canny
+
+  # Pigmentation / dark-spot detection via saturation and value channel
+  # thresholding in HSV space.
+  pigmentation:
+    method: hsv_threshold
+    saturation_min: 40
+    saturation_max: 180
+    value_min: 60
+    value_max: 220
+    morphology_kernel: 5     # Closing kernel to merge nearby blobs
+
+  # Redness detection isolates the red channel relative to green in Lab space.
+  redness:
+    method: lab_channel
+    a_channel_threshold: 130  # Lab a* > threshold indicates redness
+    min_blob_area: 50         # Ignore sub-pixel noise
+
+  # Pore texture detection via Gabor filter bank tuned to pore spatial freq.
+  pore_texture:
+    method: gabor
+    frequencies: [0.1, 0.2, 0.3]   # Cycles per pixel — targets pore scale
+    orientations: [0, 45, 90, 135]  # Degrees — rotation-invariant response
+    sigma: 3.0
+    gamma: 0.5               # Spatial aspect ratio of the Gabor filter
+
+# -----------------------------------------------------------------------------
+# Augmentation Pipeline (training set only)
+# Transforms are applied on-the-fly. Values chosen to reflect realistic
+# photographic variation without introducing implausible distortions.
+# -----------------------------------------------------------------------------
+augmentation:
+  horizontal_flip:
+    enabled: true
+    p: 0.5
+
+  rotation:
+    limit: 10                # Degrees; keeps face roughly upright
+    p: 0.5
+
+  brightness_contrast:
+    brightness_limit: 0.15
+    contrast_limit: 0.10
+    p: 0.4
+
+  jpeg_compression:
+    quality_lower: 60
+    quality_upper: 100       # Simulates a range of camera / upload quality
+    p: 0.3
+
+  gaussian_noise:
+    var_limit: [5.0, 25.0]
+    p: 0.2
+
+  random_scale:
+    scale_limit: 0.05        # ±5% scale jitter
+    p: 0.3
+
+# -----------------------------------------------------------------------------
+# Preprocessing (applied to all splits including val and test)
+# CLAHE enhances local contrast to improve pseudo-label signal quality and
+# model robustness to uneven illumination.
+# -----------------------------------------------------------------------------
+preprocessing:
+  clahe_clip_limit: 2.0      # Contrast amplification cap; prevents haloing
+  clahe_tile_grid: 8         # 8x8 tile grid for local histogram equalisation
+  normalise_mean: [0.485, 0.456, 0.406]   # ImageNet channel means
+  normalise_std:  [0.229, 0.224, 0.225]   # ImageNet channel std deviations

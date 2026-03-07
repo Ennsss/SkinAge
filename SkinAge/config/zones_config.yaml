@@ -1,0 +1,143 @@
+# =============================================================================
+# zones_config.yaml
+# SkinAge ML — Facial Zone Landmark Definitions and Scoring Weights
+# =============================================================================
+# Landmark indices reference the MediaPipe FaceMesh 468-point topology.
+# Each zone polygon is defined by a closed set of landmark indices that,
+# when connected in order, outline the region of interest on the face.
+#
+# Bilateral zones (under_eyes, cheeks, crows_feet, nasolabial) have separate
+# left/right polygon definitions merged into a single zone during extraction.
+#
+# Weights reflect the relative clinical significance of each zone for
+# perceived skin age — higher weight = greater contribution to the
+# composite skin score.
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Facial Zone Definitions
+# -----------------------------------------------------------------------------
+zones:
+
+  # Horizontal band across the upper face above the brow line.
+  # Commonly shows horizontal expression lines and age-related laxity.
+  forehead:
+    landmarks: [10, 338, 297, 332, 284, 251, 389, 356, 67, 109, 54, 103, 68, 71]
+    weight: 1.0
+    concern_types: [wrinkle, pigmentation]
+    color: [255, 100, 100]
+
+  # Lower orbital region beneath each eye.
+  # Among the earliest zones to show intrinsic aging (fine lines, hollowing).
+  under_eyes:
+    left:
+      landmarks: [33, 7, 163, 144, 145, 153, 154, 155, 133]
+    right:
+      landmarks: [362, 382, 381, 380, 374, 373, 390, 249, 263]
+    weight: 1.2
+    concern_types: [wrinkle, pigmentation, pore_texture]
+    color: [100, 255, 100]
+
+  # Mid-face lateral region; key zone for pore visibility and redness.
+  # Larger anatomical area captures the bulk of visible skin surface.
+  cheeks:
+    left:
+      landmarks: [234, 93, 132, 58, 172, 136, 150, 149, 176, 148]
+    right:
+      landmarks: [454, 323, 361, 288, 397, 365, 379, 378, 400, 377]
+    weight: 1.5
+    concern_types: [wrinkle, pigmentation, redness, pore_texture]
+    color: [100, 100, 255]
+
+  # Central nose dorsum and tip region.
+  # Important for pore texture and sebaceous activity assessment.
+  nose:
+    landmarks: [168, 6, 197, 195, 5, 4, 1, 19, 94, 2, 98, 327]
+    weight: 0.8
+    concern_types: [redness, pore_texture]
+    color: [255, 255, 100]
+
+  # Lower face from the mentolabial fold to the mandible.
+  # Reflects facial volume loss and jowl formation over time.
+  chin:
+    landmarks: [152, 377, 400, 148, 176, 149, 150, 136, 172, 58]
+    weight: 0.7
+    concern_types: [wrinkle, pigmentation]
+    color: [255, 100, 255]
+
+  # Lateral orbital region; first zone to exhibit dynamic wrinkle formation.
+  # Crow's feet are a primary chronological age indicator.
+  crows_feet:
+    left:
+      landmarks: [130, 247, 30, 29, 27, 28, 56, 190, 243, 112, 26, 22, 23, 24, 110, 25]
+    right:
+      landmarks: [359, 467, 260, 259, 257, 258, 286, 414, 463, 341, 256, 252, 253, 254, 339, 255]
+    weight: 1.0
+    concern_types: [wrinkle]
+    color: [100, 255, 255]
+
+  # Folds running from the nasal alae to the oral commissures.
+  # Deepening nasolabial folds strongly correlate with perceived facial age.
+  nasolabial:
+    left:
+      landmarks: [92, 165, 167, 164, 2, 98, 60, 75, 59, 166]
+    right:
+      landmarks: [322, 391, 393, 164, 2, 327, 290, 305, 289, 392]
+    weight: 1.0
+    concern_types: [wrinkle, redness]
+    color: [180, 130, 255]
+
+# -----------------------------------------------------------------------------
+# Extraction Settings
+# -----------------------------------------------------------------------------
+extraction:
+  padding: 10
+  overlay_alpha: 0.35
+  min_zone_area: 100
+
+# -----------------------------------------------------------------------------
+# Concern Types
+# The four concern dimensions assessed within each applicable zone.
+# These map directly to the 4 heatmap output channels from the UNet decoder.
+# -----------------------------------------------------------------------------
+concern_types:
+  - wrinkle
+  - pigmentation
+  - redness
+  - pore_texture
+
+# -----------------------------------------------------------------------------
+# Zone Score Labels (per-zone composite score in [0, 100])
+# Translates the numerical score returned by the quality head into a
+# consumer-facing descriptive grade.
+# -----------------------------------------------------------------------------
+score_labels:
+  "90-100": "Excellent"
+  "80-89":  "Great"
+  "70-79":  "Good"
+  "60-69":  "Fair"
+  "50-59":  "Needs Attention"
+  "0-49":   "Significant Concerns"
+
+score_thresholds:
+  excellent:           90
+  great:               80
+  good:                70
+  fair:                60
+  needs_attention:     50
+
+# -----------------------------------------------------------------------------
+# Concern Severity Labels (normalised heatmap intensity in [0.0, 1.0])
+# Maps raw heatmap activation levels to clinical severity descriptors.
+# Used when reporting per-concern detail within a zone.
+# -----------------------------------------------------------------------------
+severity_labels:
+  "0.00-0.25": "minimal"
+  "0.25-0.50": "mild"
+  "0.50-0.75": "moderate"
+  "0.75-1.00": "significant"
+
+severity_thresholds:
+  minimal:    0.25
+  mild:       0.50
+  moderate:   0.75

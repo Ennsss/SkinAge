@@ -1,0 +1,103 @@
+# =============================================================================
+# model_config.yaml
+# SkinAge ML — Architecture and Training Hyperparameters
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Backbone Encoder
+# EfficientNet-B2 extracts rich spatial features from 512x512 input images.
+# feature_dim matches EfficientNet-B2's final feature map channel width.
+# -----------------------------------------------------------------------------
+backbone:
+  name: efficientnet_b2
+  pretrained: true          # Load ImageNet weights for transfer learning
+  feature_dim: 1408         # Output channel depth from the backbone stem
+
+# -----------------------------------------------------------------------------
+# UNet Decoder — Heatmap Branch
+# Generates 4-channel spatial heatmaps (one per concern type) at the original
+# resolution. Four upsampling blocks progressively restore spatial detail lost
+# during backbone downsampling.
+# -----------------------------------------------------------------------------
+unet_decoder:
+  num_upsampling_blocks: 4
+  output_channels: 4        # One channel per concern type (see zones_config)
+  activation: sigmoid       # Bound heatmap values to [0, 1]
+
+# -----------------------------------------------------------------------------
+# Quality Head — Per-Zone Concern Scores
+# Maps global backbone features to 28 scalar scores:
+# 7 facial zones x 4 concern types = 28 outputs.
+# sigmoid_x_100 rescales sigmoid output to a human-readable [0, 100] range.
+# -----------------------------------------------------------------------------
+quality_head:
+  layers: [1408, 512, 28]
+  dropout: 0.3
+  activation: sigmoid_x_100  # sigmoid(x) * 100 → score in [0, 100]
+
+# -----------------------------------------------------------------------------
+# Age Head — Biological Skin Age Regression
+# Single scalar output; ReLU ensures non-negative age predictions.
+# -----------------------------------------------------------------------------
+age_head:
+  layers: [1408, 256, 1]
+  dropout: 0.3
+  activation: relu           # Non-negative age output
+
+# -----------------------------------------------------------------------------
+# Multi-Task Loss Weights
+# Quality is weighted highest — accurate zone scores are the core product
+# deliverable. Age contributes auxiliary supervision to guide representation
+# learning. Heatmap loss anchors spatial attention.
+# -----------------------------------------------------------------------------
+loss_weights:
+  heatmap: 1.0
+  quality: 2.0
+  age: 1.5
+
+# -----------------------------------------------------------------------------
+# Training Schedule — Two-Phase Strategy
+# Phase 1: Train heads only with a frozen backbone to warm-start the task
+#          heads before fine-tuning corrupts pretrained features.
+# Phase 2: Unfreeze backbone and fine-tune end-to-end at a low learning rate
+#          with cosine annealing to avoid overshooting the loss minimum.
+# -----------------------------------------------------------------------------
+training:
+  phase1:
+    epochs: 3
+    learning_rate: 1.0e-3
+    backbone_frozen: true    # Only task heads receive gradients
+
+  phase2:
+    epochs: 30
+    learning_rate: 5.0e-5
+    backbone_frozen: false   # Full end-to-end fine-tuning
+    lr_scheduler:
+      name: cosine_annealing
+      eta_min: 1.0e-6        # Floor learning rate at the end of the schedule
+
+# -----------------------------------------------------------------------------
+# Early Stopping
+# Halts training when val_composite_loss does not improve for 7 consecutive
+# epochs, preventing overfitting and saving compute.
+# -----------------------------------------------------------------------------
+early_stopping:
+  patience: 7
+  monitor: val_composite_loss
+  mode: min                  # Stop when the monitored metric stops decreasing
+
+# -----------------------------------------------------------------------------
+# Data Loading
+# -----------------------------------------------------------------------------
+dataloader:
+  batch_size: 16
+  num_workers: 4
+
+# -----------------------------------------------------------------------------
+# Optimizer
+# AdamW decouples weight decay from the adaptive gradient update, which
+# improves generalisation over standard Adam for vision fine-tuning tasks.
+# -----------------------------------------------------------------------------
+optimizer:
+  name: AdamW
+  weight_decay: 1.0e-4

@@ -1,0 +1,188 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+# =============================================================================
+# Project metadata
+# =============================================================================
+
+[project]
+name = "skinage"
+version = "1.0.0"
+description = (
+    "SkinAge: a multi-task deep-learning system that estimates biological skin "
+    "age and quantifies skin-health biomarkers from facial photographs, "
+    "delivering dermatologist-grade assessments through a non-invasive, "
+    "image-only pipeline."
+)
+readme = "README.md"
+license = { text = "MIT" }
+authors = [
+    { name = "Frederick Ian Aranico" },
+]
+requires-python = ">=3.11"
+keywords = [
+    "skin-age",
+    "skin-health",
+    "deep-learning",
+    "computer-vision",
+    "mediapipe",
+    "biomarkers",
+    "dermatology",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Healthcare Industry",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Image Recognition",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+    "Typing :: Typed",
+]
+
+# Runtime dependencies mirror requirements.txt (without version upper bounds)
+dependencies = [
+    "torch>=2.0.0",
+    "torchvision>=0.15.0",
+    "timm>=0.9.0",
+    "mediapipe>=0.10.0",
+    "opencv-python>=4.8.0",
+    "Pillow>=10.0.0",
+    "scikit-image>=0.21.0",
+    "scikit-learn>=1.3.0",
+    "scipy>=1.11.0",
+    "albumentations>=1.3.0",
+    "pandas>=2.0.0",
+    "numpy>=1.24.0",
+    "plotly>=5.15.0",
+    "matplotlib>=3.7.0",
+    "fastapi>=0.100.0",
+    "uvicorn>=0.23.0",
+    "pydantic>=2.0.0",
+    "streamlit>=1.25.0",
+    "python-multipart>=0.0.6",
+    "PyYAML>=6.0",
+    "onnx>=1.14.0",
+    "onnxruntime>=1.15.0",
+    "tqdm>=4.65.0",
+    "requests>=2.31.0",
+    "colorspacious>=1.1.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "mypy>=1.5.0",
+    "ruff>=0.1.0",
+    "black>=23.7.0",
+    "bandit>=1.7.5",
+    "pre-commit>=3.3.0",
+]
+notebooks = [
+    "jupyter>=1.0.0",
+    "ipykernel>=6.25.0",
+    "ipywidgets>=8.1.0",
+]
+
+[project.urls]
+Repository = "https://github.com/frederickiaranico/skinage"
+"Bug Tracker" = "https://github.com/frederickiaranico/skinage/issues"
+
+# =============================================================================
+# Tool configuration
+# =============================================================================
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+# ── pytest ────────────────────────────────────────────────────────────────────
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = [
+    "--strict-markers",
+    "--tb=short",
+    "--cov=src",
+    "--cov-report=term-missing",
+    "--cov-report=html:outputs/coverage",
+    "--cov-fail-under=90",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "gpu: marks tests that require a CUDA-capable GPU",
+    "integration: marks integration tests that hit external services",
+]
+
+# ── coverage ──────────────────────────────────────────────────────────────────
+
+[tool.coverage.run]
+source = ["src"]
+omit = ["*/tests/*", "*/notebooks/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+]
+
+# ── mypy ──────────────────────────────────────────────────────────────────────
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+exclude = ["notebooks/", "scripts/"]
+
+# ── ruff ──────────────────────────────────────────────────────────────────────
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+    "N",   # pep8-naming
+    "SIM", # flake8-simplify
+    "TCH", # flake8-type-checking
+]
+ignore = [
+    "E501",  # line length handled by black
+    "B008",  # function calls in default argument (common in FastAPI)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["skinage"]
+
+# ── black ─────────────────────────────────────────────────────────────────────
+
+[tool.black]
+line-length = 100
+target-version = ["py311", "py312"]
+include = '\.pyi?$'
+
+# ── bandit ────────────────────────────────────────────────────────────────────
+
+[tool.bandit]
+targets = ["src"]
+skips = ["B101"]  # assert statements are acceptable in non-security code
