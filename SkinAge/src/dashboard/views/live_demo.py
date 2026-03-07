@@ -40,6 +40,7 @@ def _gauge_chart(score: float) -> go.Figure:
             mode="gauge+number",
             value=score,
             number={"font": {"size": 56, "color": COLORS["text"], "family": "Inter"}, "suffix": ""},
+            domain={"x": [0, 1], "y": [0, 1]},
             gauge={
                 "axis": {
                     "range": [0, 100],
@@ -68,7 +69,7 @@ def _gauge_chart(score: float) -> go.Figure:
     )
     fig.update_layout(
         height=280,
-        margin=dict(l=30, r=30, t=30, b=10),
+        margin=dict(l=30, r=30, t=50, b=0),
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         font={"family": "Inter"},
