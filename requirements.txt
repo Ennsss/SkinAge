@@ -12,3 +12,4 @@ PyYAML>=6.0
 torch>=2.0.0
 timm>=0.9.0
 mediapipe>=0.10.0
+scikit-image>=0.21.0
