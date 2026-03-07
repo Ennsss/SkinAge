@@ -1,0 +1,64 @@
+# =============================================================================
+# SkinAge — Docker Compose for local development and production deployment
+# =============================================================================
+# Usage:
+#   docker compose up --build          # Build and start all services
+#   docker compose up api              # Start API only
+#   docker compose down                # Stop all services
+# =============================================================================
+
+services:
+  # --------------------------------------------------------------------------
+  # API service — FastAPI inference server
+  # --------------------------------------------------------------------------
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: skinage-api
+    ports:
+      - "8000:8000"
+    volumes:
+      - model_weights:/app/outputs/models
+      - ./data:/app/data:ro
+    environment:
+      - SKINAGE_CONFIG_DIR=/app/config
+      - SKINAGE_MODEL_PATH=/app/outputs/models/best_model.pth
+      - SKINAGE_ONNX_PATH=/app/outputs/models/skinage.onnx
+      - SKINAGE_DEVICE=cpu
+    networks:
+      - skinage-net
+    restart: unless-stopped
+
+  # --------------------------------------------------------------------------
+  # Dashboard service — Streamlit interactive UI
+  # --------------------------------------------------------------------------
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: skinage-dashboard
+    ports:
+      - "8501:8501"
+    environment:
+      - SKINAGE_API_URL=http://api:8000
+      - STREAMLIT_SERVER_PORT=8501
+      - STREAMLIT_SERVER_ADDRESS=0.0.0.0
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - skinage-net
+    restart: unless-stopped
+    command: ["streamlit", "run", "scripts/dashboard.py", "--server.port=8501", "--server.address=0.0.0.0"]
+
+# --------------------------------------------------------------------------
+# Shared resources
+# --------------------------------------------------------------------------
+networks:
+  skinage-net:
+    driver: bridge
+
+volumes:
+  model_weights:
+    driver: local
