@@ -5,13 +5,13 @@
 
 # -----------------------------------------------------------------------------
 # Backbone Encoder
-# EfficientNet-B2 extracts rich spatial features from 512x512 input images.
-# feature_dim matches EfficientNet-B2's final feature map channel width.
+# EfficientNetV2-S extracts rich spatial features from 512x512 input images.
+# Upgraded from EfficientNet-B2 for better accuracy on skin grading tasks.
 # -----------------------------------------------------------------------------
 backbone:
-  name: efficientnet_b2
+  name: efficientnetv2_rw_s
   pretrained: true          # Load ImageNet weights for transfer learning
-  feature_dim: 1408         # Output channel depth from the backbone stem
+  feature_dim: 1792         # Output channel depth from the backbone stem
 
 # -----------------------------------------------------------------------------
 # UNet Decoder — Heatmap Branch
@@ -31,16 +31,16 @@ unet_decoder:
 # sigmoid_x_100 rescales sigmoid output to a human-readable [0, 100] range.
 # -----------------------------------------------------------------------------
 quality_head:
-  layers: [1408, 512, 28]
+  layers: [1792, 512, 28]
   dropout: 0.3
-  activation: sigmoid_x_100  # sigmoid(x) * 100 → score in [0, 100]
+  activation: sigmoid_x_100  # sigmoid(x) * 100 -> score in [0, 100]
 
 # -----------------------------------------------------------------------------
 # Age Head — Biological Skin Age Regression
 # Single scalar output; ReLU ensures non-negative age predictions.
 # -----------------------------------------------------------------------------
 age_head:
-  layers: [1408, 256, 1]
+  layers: [1792, 256, 1]
   dropout: 0.3
   activation: relu           # Non-negative age output
 
@@ -64,25 +64,25 @@ loss_weights:
 # -----------------------------------------------------------------------------
 training:
   phase1:
-    epochs: 3
+    epochs: 5
     learning_rate: 1.0e-3
     backbone_frozen: true    # Only task heads receive gradients
 
   phase2:
-    epochs: 30
-    learning_rate: 5.0e-5
+    epochs: 60
+    learning_rate: 3.0e-5
     backbone_frozen: false   # Full end-to-end fine-tuning
     lr_scheduler:
       name: cosine_annealing
-      eta_min: 1.0e-6        # Floor learning rate at the end of the schedule
+      eta_min: 1.0e-7        # Floor learning rate at the end of the schedule
 
 # -----------------------------------------------------------------------------
 # Early Stopping
-# Halts training when val_composite_loss does not improve for 7 consecutive
+# Halts training when val_composite_loss does not improve for 10 consecutive
 # epochs, preventing overfitting and saving compute.
 # -----------------------------------------------------------------------------
 early_stopping:
-  patience: 7
+  patience: 10
   monitor: val_composite_loss
   mode: min                  # Stop when the monitored metric stops decreasing
 

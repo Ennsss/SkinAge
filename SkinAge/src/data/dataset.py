@@ -29,6 +29,42 @@ import pandas as pd
 import torch
 import torch.utils.data
 
+# ---------------------------------------------------------------------------
+# On-the-fly heatmap generation (texture-map method)
+# ---------------------------------------------------------------------------
+
+def generate_heatmaps_from_image(image_bgr: np.ndarray) -> np.ndarray:
+    """Generate 4-channel heatmap pseudo-labels on-the-fly using texture-map method.
+
+    Returns (4, H, W) float32 array with channels: wrinkle, pigmentation, redness, pore_texture.
+    """
+    gray = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2GRAY)
+    lab = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2LAB)
+
+    # Wrinkle: texture-map method T(x,y) = 1 - I(x,y) / (1 + I_gaussian(x,y))
+    img_f = gray.astype(np.float32) / 255.0
+    blurred = cv2.GaussianBlur(img_f, (31, 31), 10.0)
+    wrinkle = 1.0 - img_f / (1.0 + blurred)
+    wrinkle = np.clip(wrinkle, 0, 1)
+
+    # Pigmentation: L* deviation from local mean
+    l_ch = lab[:, :, 0].astype(np.float32) / 255.0
+    l_local = cv2.GaussianBlur(l_ch, (51, 51), 15.0)
+    pigmentation = np.abs(l_ch - l_local)
+    pigmentation = np.clip(pigmentation * 5.0, 0, 1)
+
+    # Redness: a* channel normalized
+    a_ch = lab[:, :, 1].astype(np.float32) / 255.0
+    redness = np.clip((a_ch - 0.5) * 3.0, 0, 1)
+
+    # Pore/texture: Laplacian magnitude
+    lap = cv2.Laplacian(gray, cv2.CV_64F)
+    pore = np.abs(lap)
+    p99 = np.percentile(pore, 99)
+    pore = np.clip(pore / p99 if p99 > 0 else pore, 0, 1).astype(np.float32)
+
+    return np.stack([wrinkle, pigmentation, redness, pore], axis=0)  # (4, H, W)
+
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -158,8 +194,7 @@ class SkinAgeDataset(torch.utils.data.Dataset):
                 f"(e.g. {QUALITY_SCORE_COLUMNS[:3]} …)."
             )
 
-        if "heatmap_path" not in self._df.columns:
-            raise ValueError("metadata_df must contain a 'heatmap_path' column.")
+        self._has_heatmap_path: bool = "heatmap_path" in self._df.columns
 
         if "image_path" not in self._df.columns:
             raise ValueError("metadata_df must contain an 'image_path' column.")
@@ -382,7 +417,14 @@ class SkinAgeDataset(torch.utils.data.Dataset):
         image_np: np.ndarray = self._load_image(str(row["image_path"]))  # (H, W, 3) uint8
 
         # ---- heatmaps ----
-        heatmaps_np: np.ndarray = self._load_heatmaps(str(row["heatmap_path"]))  # (H, W, 4)
+        heatmap_path = row.get("heatmap_path", None) if self._has_heatmap_path else None
+        if heatmap_path is not None and not pd.isna(heatmap_path) and Path(str(heatmap_path)).is_file():
+            heatmaps_np: np.ndarray = self._load_heatmaps(str(heatmap_path))  # (H, W, 4)
+        else:
+            # Generate on-the-fly from image (RGB -> BGR for OpenCV)
+            image_bgr = cv2.cvtColor(image_np, cv2.COLOR_RGB2BGR)
+            heatmaps_chw = generate_heatmaps_from_image(image_bgr)  # (4, H, W)
+            heatmaps_np = np.transpose(heatmaps_chw, (1, 2, 0)).astype(np.float32)  # (H, W, 4)
 
         # ---- quality scores ----
         if self._has_scores_path and not pd.isna(row.get("scores_path", None)):
@@ -453,7 +495,7 @@ class SkinAgeDataset(torch.utils.data.Dataset):
         metadata: Dict[str, Any] = {
             "idx": int(idx),
             "image_path": str(row["image_path"]),
-            "heatmap_path": str(row["heatmap_path"]),
+            "heatmap_path": str(row.get("heatmap_path", "on_the_fly")),
             "dataset_source": str(row.get("dataset_source", "unknown")),
         }
 

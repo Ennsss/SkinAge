@@ -1,19 +1,19 @@
 """
-EfficientNet-B2 backbone with dual outputs for the SkinAge model.
+EfficientNetV2-RW-S backbone with dual outputs for the SkinAge model.
 
 Produces:
   - skip_features: list of 5 intermediate feature maps for the U-Net decoder
-  - pooled: 1408-dim global-average-pooled vector for the regression / classification heads
+  - pooled: 1280-dim global-average-pooled vector for the regression / classification heads
 
 Stage output shapes (512x512 input):
-  stage 0 ->  16 ch @ 256x256
-  stage 1 ->  24 ch @ 128x128
-  stage 2 ->  48 ch  @ 64x64
-  stage 3 -> 120 ch  @ 32x32
-  stage 4 -> 352 ch  @ 16x16
+  stage 0 ->  24 ch @ 256x256
+  stage 1 ->  48 ch @ 128x128
+  stage 2 ->  64 ch  @ 64x64
+  stage 3 -> 160 ch  @ 32x32
+  stage 4 -> 272 ch  @ 16x16
 
 The pooling head (conv_head -> bn2 -> act2 -> AdaptiveAvgPool2d) takes the
-stage-4 feature map and produces the 1408-dim vector that feeds downstream
+stage-4 feature map and produces the 1792-dim vector that feeds downstream
 heads without going through the classification layer of the full model.
 """
 
@@ -27,15 +27,15 @@ import timm
 
 
 class SkinAgeBackbone(nn.Module):
-    """EfficientNet-B2 encoder with skip features and a 1408-dim pooled output.
+    """EfficientNetV2-RW-S encoder with skip features and a 1792-dim pooled output.
 
     Args:
         pretrained: Load ImageNet-pretrained weights when True.
     """
 
     # Number of output channels from the five encoder stages.
-    ENCODER_CHANNELS: List[int] = [16, 24, 48, 120, 352]
-    POOLED_DIM: int = 1408
+    ENCODER_CHANNELS: List[int] = [24, 48, 64, 160, 272]
+    POOLED_DIM: int = 1792
 
     def __init__(self, pretrained: bool = True) -> None:
         super().__init__()
@@ -44,7 +44,7 @@ class SkinAgeBackbone(nn.Module):
         # 1. Feature extractor — provides the 5 intermediate skip maps.
         # ------------------------------------------------------------------
         self.encoder: nn.Module = timm.create_model(
-            "efficientnet_b2",
+            "efficientnetv2_rw_s",
             pretrained=pretrained,
             features_only=True,
         )
@@ -55,15 +55,15 @@ class SkinAgeBackbone(nn.Module):
         #    heavy full model so it does not occupy GPU memory.
         # ------------------------------------------------------------------
         _full_model: nn.Module = timm.create_model(
-            "efficientnet_b2",
+            "efficientnetv2_rw_s",
             pretrained=pretrained,
             features_only=False,
         )
 
-        # These layers sit between stage-4 features and the 1408-dim
-        # pre-logits representation in the standard EfficientNet-B2 model.
+        # These layers sit between stage-4 features and the 1280-dim
+        # pre-logits representation in the EfficientNetV2-S model.
         # In newer timm, bn2 is a BatchNormAct2d that includes the activation.
-        self.conv_head = _full_model.conv_head   # 352 -> 1408, kernel 1x1
+        self.conv_head = _full_model.conv_head   # 272 -> 1792, kernel 1x1
         self.bn2 = _full_model.bn2               # BatchNormAct2d (includes SiLU)
 
         # Release the full model immediately.
@@ -87,7 +87,7 @@ class SkinAgeBackbone(nn.Module):
         Returns:
             A tuple of:
               - skip_features: list of 5 tensors, one per encoder stage.
-              - pooled: tensor of shape (B, 1408).
+              - pooled: tensor of shape (B, 1792).
         """
         # 5 intermediate feature maps, increasing semantic depth.
         skip_features: List[torch.Tensor] = self.encoder(x)
@@ -96,7 +96,7 @@ class SkinAgeBackbone(nn.Module):
         z: torch.Tensor = self.conv_head(skip_features[-1])
         z = self.bn2(z)  # BatchNormAct2d applies BN + SiLU
         z = self.global_pool(z)                 # (B, 1408, 1, 1)
-        pooled: torch.Tensor = z.flatten(1)     # (B, 1408)
+        pooled: torch.Tensor = z.flatten(1)     # (B, 1792)
 
         return skip_features, pooled
 

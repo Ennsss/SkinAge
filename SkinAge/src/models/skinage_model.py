@@ -303,6 +303,16 @@ class SkinAgeModel(nn.Module):
     # Parameter utilities                                                      #
     # ---------------------------------------------------------------------- #
 
+    def param_count(self) -> Dict[str, int]:
+        """Return per-component parameter counts for logging."""
+        return {
+            "backbone": sum(p.numel() for p in self.backbone.parameters()),
+            "decoder": sum(p.numel() for p in self.decoder.parameters()),
+            "quality_head": sum(p.numel() for p in self.quality_head.parameters()),
+            "age_head": sum(p.numel() for p in self.age_head.parameters()),
+            "total": sum(p.numel() for p in self.parameters()),
+        }
+
     def count_parameters(self, trainable_only: bool = True) -> int:
         """Return the total number of model parameters.
 
