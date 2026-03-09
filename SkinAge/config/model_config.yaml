@@ -64,7 +64,7 @@ loss_weights:
 # -----------------------------------------------------------------------------
 training:
   phase1:
-    epochs: 5
+    epochs: 3
     learning_rate: 1.0e-3
     backbone_frozen: true    # Only task heads receive gradients
 
@@ -91,7 +91,7 @@ early_stopping:
 # -----------------------------------------------------------------------------
 dataloader:
   batch_size: 16
-  num_workers: 4
+  num_workers: 8
 
 # -----------------------------------------------------------------------------
 # Optimizer

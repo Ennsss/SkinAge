@@ -227,6 +227,7 @@ class SkinAgeTrainer:
         self,
         train_loader: torch.utils.data.DataLoader,
         val_loader: torch.utils.data.DataLoader,
+        skip_phase1: bool = False,
     ) -> Dict[str, Any]:
         """Run Phase 1 followed by Phase 2 and return the training history.
 
@@ -236,6 +237,8 @@ class SkinAgeTrainer:
             Training DataLoader produced by ``build_dataloader(..., shuffle=True)``.
         val_loader : DataLoader
             Validation DataLoader produced by ``build_dataloader(..., shuffle=False)``.
+        skip_phase1 : bool
+            If True, skip Phase 1 and go straight to Phase 2.
 
         Returns
         -------
@@ -251,7 +254,10 @@ class SkinAgeTrainer:
         logger.info("Output directory: %s", self.output_dir)
         logger.info("=" * 60)
 
-        self._run_phase1(train_loader, val_loader)
+        if skip_phase1:
+            logger.info("Skipping Phase 1 (--skip-phase1 flag set)")
+        else:
+            self._run_phase1(train_loader, val_loader)
         self._run_phase2(train_loader, val_loader)
 
         elapsed = time.time() - start

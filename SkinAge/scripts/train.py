@@ -153,6 +153,12 @@ def _build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Path to a checkpoint file to restore model weights and optimizer state.",
     )
+    parser.add_argument(
+        "--skip-phase1",
+        action="store_true",
+        default=False,
+        help="Skip Phase 1 (frozen backbone) and go straight to Phase 2. Use with --resume.",
+    )
 
     return parser
 
@@ -357,6 +363,9 @@ def main() -> None:
         logger.info("Resuming from checkpoint: %s", args.resume)
         _restore_checkpoint(model, args.resume)
 
+    # NOTE: torch.compile requires Triton which is not available on Windows.
+    # Skipping for now. On Linux this would give ~15-20% speedup.
+
     # ------------------------------------------------------------------
     # 8. Build loss criterion
     # ------------------------------------------------------------------
@@ -391,7 +400,7 @@ def main() -> None:
     logger.info("Starting training...")
     logger.info("=" * 60)
 
-    result = trainer.train(train_loader, val_loader)
+    result = trainer.train(train_loader, val_loader, skip_phase1=args.skip_phase1)
 
     # ------------------------------------------------------------------
     # 11. Save history and print summary
