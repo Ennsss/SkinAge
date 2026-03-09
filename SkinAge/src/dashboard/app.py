@@ -131,7 +131,7 @@ def main() -> None:
                     color: #8B83FF;
                     font-weight: 600;
                     letter-spacing: 0.5px;
-                ">v1.0.0 &middot; Demo</div>
+                ">v2.0.0 &middot; Demo</div>
             </div>
             """,
             unsafe_allow_html=True,

@@ -20,11 +20,11 @@ logger = logging.getLogger(__name__)
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]  # SkinAge/
 _MODEL_PATH = _PROJECT_ROOT / "outputs" / "best_model.pth"
-_RELEASE_BASE = "https://github.com/Ennsss/SkinAge/releases/download/v1.0.0"
+_RELEASE_BASE = "https://github.com/Ennsss/SkinAge/releases/download/v2.0.0"
 
 # Files to download: (url, local_path, label for spinner)
 _REQUIRED_FILES = [
-    (f"{_RELEASE_BASE}/best_model.pth", _MODEL_PATH, "model (129 MB)"),
+    (f"{_RELEASE_BASE}/best_model.pth", _MODEL_PATH, "model (297 MB)"),
     (
         f"{_RELEASE_BASE}/blaze_face_short_range.tflite",
         _PROJECT_ROOT / "models" / "mediapipe" / "blaze_face_short_range.tflite",
