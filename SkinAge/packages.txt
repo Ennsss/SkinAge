@@ -1,0 +1,2 @@
+libgles2-mesa
+libegl1-mesa
