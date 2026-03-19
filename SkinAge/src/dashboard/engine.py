@@ -71,10 +71,14 @@ def get_pipeline():
         logger.info("Loaded real InferencePipeline.")
         return pipeline
     except Exception as exc:
-        logger.warning("Could not load real model (%s). Falling back to demo.", exc)
-        from src.api.demo import DemoInferencePipeline
-
-        return DemoInferencePipeline()
+        import traceback
+        logger.warning("Could not load real model: %s\n%s", exc, traceback.format_exc())
+        try:
+            from src.api.demo import DemoInferencePipeline
+            return DemoInferencePipeline()
+        except Exception as demo_exc:
+            logger.error("Demo pipeline also failed: %s\n%s", demo_exc, traceback.format_exc())
+            raise
 
 
 def analyze(image_bytes: bytes, age: int | None = None, include_heatmaps: bool = True) -> dict:

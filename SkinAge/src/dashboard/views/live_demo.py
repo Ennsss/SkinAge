@@ -222,7 +222,9 @@ def render() -> None:
                         st.session_state["last_result"] = result
                         st.session_state["last_image"] = image_bytes
                     except Exception as exc:
+                        import traceback
                         st.error(f"Analysis failed: {exc}")
+                        st.code(traceback.format_exc(), language="text")
                         return
 
     # Display results
