@@ -229,15 +229,19 @@ class InferencePipeline:
         if image is None:
             raise ValueError("Could not decode image. Ensure the file is a valid JPEG or PNG.")
 
-        # Get landmarks and align
+        # Get landmarks and align (falls back to center-crop if mediapipe unavailable)
         landmarks = get_landmarks(image)
-        if landmarks is None:
-            raise ValueError(
-                "Could not detect face landmarks. "
-                "Please ensure a face is clearly visible in the image."
-            )
-
-        aligned, _ = align_face(image, landmarks, output_size=self.input_size)
+        if landmarks is not None:
+            aligned, _ = align_face(image, landmarks, output_size=self.input_size)
+        else:
+            # Fallback: simple center-crop resize without alignment
+            logger.warning("No landmarks — using center-crop resize fallback.")
+            h, w = image.shape[:2]
+            size = min(h, w)
+            top = (h - size) // 2
+            left = (w - size) // 2
+            cropped = image[top:top + size, left:left + size]
+            aligned = cv2.resize(cropped, (self.input_size, self.input_size))
 
         # Convert BGR -> RGB, normalize to [0, 1], add batch dimension
         rgb = cv2.cvtColor(aligned, cv2.COLOR_BGR2RGB).astype(np.float32) / 255.0

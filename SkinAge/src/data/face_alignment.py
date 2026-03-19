@@ -134,40 +134,48 @@ def get_landmarks(image: np.ndarray) -> Optional[np.ndarray]:
     """Extract 478 face-mesh landmarks and return pixel coordinates.
 
     Returns an array of shape ``(478, 2)`` with (x, y) in pixel space,
-    or ``None`` if no face mesh is detected.
+    or ``None`` if no face mesh is detected or mediapipe is unavailable.
     """
+    if not MEDIAPIPE_AVAILABLE:
+        logger.warning("mediapipe not installed — skipping landmark detection.")
+        return None
+
     if image is None or image.size == 0:
         logger.warning("get_landmarks received an empty image.")
         return None
 
     h, w = image.shape[:2]
 
-    BaseOptions = mp.tasks.BaseOptions
-    FaceLandmarkerClass = mp.tasks.vision.FaceLandmarker
-    FaceLandmarkerOptions = mp.tasks.vision.FaceLandmarkerOptions
+    try:
+        BaseOptions = mp.tasks.BaseOptions
+        FaceLandmarkerClass = mp.tasks.vision.FaceLandmarker
+        FaceLandmarkerOptions = mp.tasks.vision.FaceLandmarkerOptions
 
-    options = FaceLandmarkerOptions(
-        base_options=BaseOptions(model_asset_path=str(_FACE_LANDMARKER_MODEL)),
-        num_faces=1,
-        min_face_detection_confidence=DETECTION_CONFIDENCE_THRESHOLD,
-    )
-
-    with FaceLandmarkerClass.create_from_options(options) as landmarker:
-        rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
-        result = landmarker.detect(mp_image)
-
-        if not result.face_landmarks:
-            logger.debug("No face mesh detected.")
-            return None
-
-        face = result.face_landmarks[0]
-        landmarks = np.array(
-            [[lm.x * w, lm.y * h] for lm in face],
-            dtype=np.float32,
+        options = FaceLandmarkerOptions(
+            base_options=BaseOptions(model_asset_path=str(_FACE_LANDMARKER_MODEL)),
+            num_faces=1,
+            min_face_detection_confidence=DETECTION_CONFIDENCE_THRESHOLD,
         )
 
-        return landmarks
+        with FaceLandmarkerClass.create_from_options(options) as landmarker:
+            rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
+            result = landmarker.detect(mp_image)
+
+            if not result.face_landmarks:
+                logger.debug("No face mesh detected.")
+                return None
+
+            face = result.face_landmarks[0]
+            landmarks = np.array(
+                [[lm.x * w, lm.y * h] for lm in face],
+                dtype=np.float32,
+            )
+
+            return landmarks
+    except OSError as exc:
+        logger.warning("mediapipe native library unavailable: %s", exc)
+        return None
 
 
 def _eye_centres(landmarks: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
