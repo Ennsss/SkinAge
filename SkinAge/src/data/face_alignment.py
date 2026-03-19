@@ -173,8 +173,8 @@ def get_landmarks(image: np.ndarray) -> Optional[np.ndarray]:
             )
 
             return landmarks
-    except OSError as exc:
-        logger.warning("mediapipe native library unavailable: %s", exc)
+    except (OSError, RuntimeError, Exception) as exc:
+        logger.warning("mediapipe landmark detection failed: %s", exc)
         return None
 
 
