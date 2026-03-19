@@ -14,8 +14,14 @@ import logging
 from typing import Tuple
 
 import cv2
-import mediapipe as mp
 import numpy as np
+
+try:
+    import mediapipe as mp
+    MEDIAPIPE_AVAILABLE = True
+except ImportError:
+    mp = None  # type: ignore[assignment]
+    MEDIAPIPE_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +33,7 @@ logger = logging.getLogger(__name__)
 #: tessellation edges.  Importable as ``from src.utils.landmarks import
 #: FACE_MESH_CONNECTIONS``.
 FACE_MESH_CONNECTIONS: frozenset[tuple[int, int]] = (
-    mp.solutions.face_mesh.FACEMESH_TESSELATION
+    mp.solutions.face_mesh.FACEMESH_TESSELATION if MEDIAPIPE_AVAILABLE else frozenset()
 )
 
 # ---------------------------------------------------------------------------

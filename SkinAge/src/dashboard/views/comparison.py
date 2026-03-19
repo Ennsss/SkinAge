@@ -150,13 +150,13 @@ def render() -> None:
     # Preview images side by side
     preview_before, _, preview_after = st.columns([5, 1, 5])
     with preview_before:
-        st.image(before_file, caption="Before", use_container_width=True)
+        st.image(before_file, caption="Before", width='stretch')
     with preview_after:
-        st.image(after_file, caption="After", use_container_width=True)
+        st.image(after_file, caption="After", width='stretch')
 
     _, btn_col, _ = st.columns([1, 2, 1])
     with btn_col:
-        if not st.button("Compare", type="primary", use_container_width=True):
+        if not st.button("Compare", type="primary", width='stretch'):
             return
 
     # ------------------------------------------------------------------ #
@@ -238,7 +238,7 @@ def render() -> None:
         after_result["zone_scores"],
         delta_scores,
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width='stretch')
 
     # Delta cards
     st.markdown(
@@ -306,7 +306,7 @@ def render() -> None:
             xaxis=dict(gridcolor="rgba(0,0,0,0)"),
             showlegend=False,
         )
-        st.plotly_chart(timeline_fig, use_container_width=True)
+        st.plotly_chart(timeline_fig, width='stretch')
 
         if days_diff > 0:
             rate = overall_delta / days_diff

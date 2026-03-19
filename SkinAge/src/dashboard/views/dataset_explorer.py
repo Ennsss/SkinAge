@@ -239,7 +239,7 @@ def render() -> None:
                 image_id = str(row_data.get("image_id", row_data.get("filename", f"image_{start_idx + item_idx}")))
                 img_path = _get_image_path(image_id)
                 if img_path and img_path.is_file():
-                    st.image(str(img_path), use_container_width=True)
+                    st.image(str(img_path), width='stretch')
                 else:
                     st.markdown(
                         f'<div style="background:{COLORS["surface"]};padding:40px;text-align:center;'
@@ -283,7 +283,7 @@ def render() -> None:
         with detail_col1:
             img_path = _get_image_path(str(selected_id))
             if img_path and img_path.is_file():
-                st.image(str(img_path), use_container_width=True)
+                st.image(str(img_path), width='stretch')
             else:
                 st.info(f"Image not found for {selected_id}")
 

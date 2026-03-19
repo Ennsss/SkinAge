@@ -21,17 +21,22 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 import cv2
-import mediapipe as mp
 import numpy as np
 import yaml
 
-from mediapipe.tasks.python import BaseOptions
-from mediapipe.tasks.python.vision import (
-    FaceDetector,
-    FaceDetectorOptions,
-    FaceLandmarker,
-    FaceLandmarkerOptions,
-)
+try:
+    import mediapipe as mp
+    from mediapipe.tasks.python import BaseOptions
+    from mediapipe.tasks.python.vision import (
+        FaceDetector,
+        FaceDetectorOptions,
+        FaceLandmarker,
+        FaceLandmarkerOptions,
+    )
+    MEDIAPIPE_AVAILABLE = True
+except ImportError:
+    mp = None  # type: ignore[assignment]
+    MEDIAPIPE_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 

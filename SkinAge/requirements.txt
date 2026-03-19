@@ -16,9 +16,8 @@ torchvision>=0.15.0
 timm>=0.9.0
 
 # ── Computer vision & face analysis ───────────────────────────────────────────
-opencv-contrib-python-headless>=4.8.0
-opencv-python-headless>=4.8.0
 mediapipe>=0.10.0
+opencv-python>=4.8.0
 Pillow>=10.0.0
 scikit-image>=0.21.0
 

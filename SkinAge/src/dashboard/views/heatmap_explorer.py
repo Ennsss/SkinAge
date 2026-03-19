@@ -84,7 +84,7 @@ def render() -> None:
         else:
             _, img_col, _ = st.columns([1, 1, 1])
             with img_col:
-                st.image(image_bytes, caption="Uploaded image", use_container_width=True)
+                st.image(image_bytes, caption="Uploaded image", width='stretch')
             return
 
     if result is None:
@@ -188,7 +188,7 @@ def render() -> None:
             original = Image.open(io.BytesIO(image_bytes)).convert("RGBA").resize(img.size)
             heatmap_rgba = img.convert("RGBA")
             blended = Image.blend(original, heatmap_rgba, alpha=opacity)
-            st.image(blended, use_container_width=True)
+            st.image(blended, width='stretch')
         else:
             st.info(f"No heatmap available for {selected_concern}.")
 
@@ -209,5 +209,5 @@ def render() -> None:
                 col.image(
                     img_data,
                     caption=f"{CONCERN_ICONS.get(concern, '')} {concern.replace('_', ' ').title()}",
-                    use_container_width=True,
+                    width='stretch',
                 )

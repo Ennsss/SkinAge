@@ -111,7 +111,7 @@ def _pseudo_label_section() -> None:
                     color_discrete_sequence=[COLORS["primary"]],
                 )
                 fig.update_layout(height=300, margin=dict(l=40, r=20, t=40, b=40), **_CHART_LAYOUT)
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width='stretch')
 
 
 def _score_distribution_section() -> None:
@@ -158,7 +158,7 @@ def _score_distribution_section() -> None:
             xaxis=dict(gridcolor="rgba(0,0,0,0)"),
             **_CHART_LAYOUT,
         )
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width='stretch')
         return
 
     zone_scores = report.get("zone_score_distributions", {})
@@ -177,7 +177,7 @@ def _score_distribution_section() -> None:
             yaxis=dict(gridcolor=COLORS["border"]),
             **_CHART_LAYOUT,
         )
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width='stretch')
 
 
 def _correlation_matrix_section() -> None:
@@ -216,7 +216,7 @@ def _correlation_matrix_section() -> None:
         zmin=-1, zmax=1, aspect="equal",
     )
     fig.update_layout(height=500, margin=dict(l=20, r=20, t=20, b=20), **_CHART_LAYOUT)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width='stretch')
 
 
 def _fairness_section() -> None:

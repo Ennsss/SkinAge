@@ -107,7 +107,7 @@ def main() -> None:
                 if st.button(
                     f"{item['icon']}  {page_name}",
                     key=f"nav_{page_name}",
-                    use_container_width=True,
+                    width='stretch',
                 ):
                     st.session_state["selected_page"] = page_name
                     st.rerun()

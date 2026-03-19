@@ -15,8 +15,14 @@ from pathlib import Path
 from typing import List, Optional, Tuple
 
 import cv2
-import mediapipe as mp
 import numpy as np
+
+try:
+    import mediapipe as mp
+    MEDIAPIPE_AVAILABLE = True
+except ImportError:
+    mp = None  # type: ignore[assignment]
+    MEDIAPIPE_AVAILABLE = False
 import pandas as pd
 
 logger = logging.getLogger(__name__)

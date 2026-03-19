@@ -1,0 +1,49 @@
+# =============================================================================
+# SkinAge Dashboard — Streamlit Cloud dependencies
+# =============================================================================
+# This file lives in the entrypoint directory (src/dashboard/) so Streamlit
+# Cloud picks it up instead of the root requirements.txt.
+#
+# mediapipe is EXCLUDED because it hard-depends on opencv-contrib-python
+# (non-headless) which requires libGLESv2.so.2 — unavailable on Streamlit
+# Cloud's headless containers.  The dashboard gracefully falls back to
+# DemoInferencePipeline when mediapipe is not installed.
+# =============================================================================
+
+# ── Deep learning ─────────────────────────────────────────────────────────────
+torch>=2.0.0
+torchvision>=0.15.0
+timm>=0.9.0
+
+# ── Computer vision (headless — no GL/display deps) ─────────────────────────
+opencv-contrib-python-headless>=4.8.0
+Pillow>=10.0.0
+scikit-image>=0.21.0
+
+# ── ML & statistics ──────────────────────────────────────────────────────────
+scikit-learn>=1.3.0
+scipy>=1.11.0
+
+# ── Data ─────────────────────────────────────────────────────────────────────
+pandas>=2.0.0
+numpy>=1.24.0
+
+# ── Visualisation ────────────────────────────────────────────────────────────
+plotly>=5.15.0
+matplotlib>=3.7.0
+
+# ── Dashboard & API schemas ──────────────────────────────────────────────────
+streamlit>=1.36.0
+pydantic>=2.0.0
+
+# ── Configuration ────────────────────────────────────────────────────────────
+PyYAML>=6.0
+
+# ── Inference ────────────────────────────────────────────────────────────────
+onnxruntime>=1.15.0
+
+# ── Utilities ────────────────────────────────────────────────────────────────
+tqdm>=4.65.0
+requests>=2.31.0
+colorspacious>=1.1.2
+albumentations>=1.3.0

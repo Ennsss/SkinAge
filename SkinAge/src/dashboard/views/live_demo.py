@@ -157,7 +157,7 @@ def _display_heatmaps(heatmaps: Dict[str, str]) -> None:
         if b64_data:
             img_bytes = base64.b64decode(b64_data)
             img = Image.open(io.BytesIO(img_bytes))
-            col.image(img, caption=display_name, use_container_width=True)
+            col.image(img, caption=display_name, width='stretch')
         else:
             col.info(f"No {display_name.lower()} data")
 
@@ -206,12 +206,12 @@ def render() -> None:
         # Center the image preview
         _, img_col, _ = st.columns([1, 1, 1])
         with img_col:
-            st.image(image_bytes, caption="Uploaded image", use_container_width=True)
+            st.image(image_bytes, caption="Uploaded image", width='stretch')
 
         # Analyze button
         _, btn_col, _ = st.columns([1, 2, 1])
         with btn_col:
-            if st.button("Analyze", type="primary", use_container_width=True):
+            if st.button("Analyze", type="primary", width='stretch'):
                 with st.spinner("Running analysis..."):
                     try:
                         result = analyze(
@@ -238,7 +238,7 @@ def render() -> None:
     gauge_fig, gauge_color = _gauge_chart(overall)
     _, gauge_col, _ = st.columns([1, 2, 1])
     with gauge_col:
-        st.plotly_chart(gauge_fig, use_container_width=True)
+        st.plotly_chart(gauge_fig, width='stretch')
         st.markdown(
             f'<div style="text-align:center;margin-top:-30px;">'
             f'<span style="font-size:56px;font-weight:700;color:{gauge_color};font-family:Inter,sans-serif;">'
